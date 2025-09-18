@@ -1,0 +1,60 @@
+name: CI/CD for My Service
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  # Step 1: Create Terraform Backend
+  create-tf-backend:
+    uses: Deepankar-MS/terraform-pipeline-templates/.github/workflows/template-create-terraform-backend.yml@v1
+    with:
+      environment: tf_backend
+      environmentDisplayName: "Create TF Backend"
+      backendServiceArm: AZURE_5_SUBSCRIPTION
+      backendAzureRmResourceGroupName: resourcegroup-devops-tfstate
+      backendAzureRmStorageAccountName: terraform0tfstate0
+      backendAzureRmContainerName: tfstate
+      location: westeurope
+
+  # Step 2: Terraform Stages (Dev)
+  terraform-dev:
+    needs: create-tf-backend
+    uses: Deepankar-MS/terraform-pipeline-templates/.github/workflows/template-terraform-stages.yml@v1
+    with:
+      environment: dev
+      environmentDisplayName: "Dev"
+      backendServiceArm: AZURE_5_SUBSCRIPTION
+      backendAzureRmResourceGroupName: resourcegroup-devops-tfstate
+      backendAzureRmStorageAccountName: terraform0tfstate0
+      backendAzureRmContainerName: tfstate
+      backendAzureRmKey: dev.tfstate
+      workingDirectory: terraform
+
+  # Step 3: Terraform Stages (Test)
+  terraform-test:
+    needs: terraform-dev
+    uses: Deepankar-MS/terraform-pipeline-templates/.github/workflows/template-terraform-stages.yml@v1
+    with:
+      environment: test
+      environmentDisplayName: "Test"
+      backendServiceArm: AZURE_5_SUBSCRIPTION
+      backendAzureRmResourceGroupName: resourcegroup-devops-tfstate
+      backendAzureRmStorageAccountName: terraform0tfstate0
+      backendAzureRmContainerName: tfstate
+      backendAzureRmKey: test.tfstate
+      workingDirectory: terraform
+
+  # Step 4: Terraform Stages (Prod)
+  terraform-prod:
+    needs: [terraform-dev, terraform-test]
+    uses: Deepankar-MS/terraform-pipeline-templates/.github/workflows/template-terraform-stages.yml@v1
+    with:
+      environment: prod
+      environmentDisplayName: "Production"
+      backendServiceArm: AZURE_5_SUBSCRIPTION
+      backendAzureRmResourceGroupName: resourcegroup-devops-tfstate
+      backendAzureRmStorageAccountName: terraform0tfstate0
+      backendAzureRmContainerName: tfstate
+      backendAzureRmKey: prod.tfstate
+      workingDirectory: terraform
