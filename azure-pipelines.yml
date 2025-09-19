@@ -8,7 +8,7 @@ resources:
     - repository: templates
       type: git
       name: demo-project1/pipeline-templates   # ProjectName/RepoName
-      ref: refs/heads/main                     # Or use refs/tags/v1.0 if tagging
+      ref: refs/heads/master                    # Or use refs/tags/v1.0 if tagging
 
 stages:
   # Step 1: Create Terraform Backend
