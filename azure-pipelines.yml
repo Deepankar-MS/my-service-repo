@@ -3,6 +3,13 @@ trigger:
     include:
       - main
 
+resources:
+  repositories:
+    - repository: templates
+      type: git
+      name: demo-project1/pipeline-templates   # ProjectName/RepoName
+      ref: refs/heads/main                     # Or use refs/tags/v1.0 if tagging
+
 stages:
   # Step 1: Create Terraform Backend
   - stage: CreateTFBackend
