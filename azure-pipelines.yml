@@ -1,0 +1,75 @@
+trigger:
+  branches:
+    include:
+      - main
+
+stages:
+  # Step 1: Create Terraform Backend
+  - stage: CreateTFBackend
+    displayName: "Create Terraform Backend"
+    jobs:
+      - job: CreateBackend
+        displayName: "Create TF Backend"
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - checkout: self
+          - template: templates/create-terraform-backend.yml@templates
+            parameters:
+              environment: tf_backend
+              environmentDisplayName: "Create TF Backend"
+              backendServiceArm: AZURE_5_SUBSCRIPTION
+              backendAzureRmResourceGroupName: resourcegroup-devops-tfstate
+              backendAzureRmStorageAccountName: terraform0tfstate0
+              backendAzureRmContainerName: tfstate
+              location: westeurope
+
+  # Step 2: Terraform Stages (Dev)
+  - stage: TerraformDev
+    displayName: "Terraform Dev"
+    dependsOn: CreateTFBackend
+    jobs:
+      - template: templates/terraform-stages.yml@templates
+        parameters:
+          environment: dev
+          environmentDisplayName: "Dev"
+          backendServiceArm: AZURE_5_SUBSCRIPTION
+          backendAzureRmResourceGroupName: resourcegroup-devops-tfstate
+          backendAzureRmStorageAccountName: terraform0tfstate0
+          backendAzureRmContainerName: tfstate
+          backendAzureRmKey: dev.tfstate
+          workingDirectory: terraform
+
+  # Step 3: Terraform Stages (Test)
+  - stage: TerraformTest
+    displayName: "Terraform Test"
+    dependsOn: TerraformDev
+    jobs:
+      - template: templates/terraform-stages.yml@templates
+        parameters:
+          environment: test
+          environmentDisplayName: "Test"
+          backendServiceArm: AZURE_5_SUBSCRIPTION
+          backendAzureRmResourceGroupName: resourcegroup-devops-tfstate
+          backendAzureRmStorageAccountName: terraform0tfstate0
+          backendAzureRmContainerName: tfstate
+          backendAzureRmKey: test.tfstate
+          workingDirectory: terraform
+
+  # Step 4: Terraform Stages (Prod)
+  - stage: TerraformProd
+    displayName: "Terraform Prod"
+    dependsOn:
+      - TerraformDev
+      - TerraformTest
+    jobs:
+      - template: templates/terraform-stages.yml@templates
+        parameters:
+          environment: prod
+          environmentDisplayName: "Production"
+          backendServiceArm: AZURE_5_SUBSCRIPTION
+          backendAzureRmResourceGroupName: resourcegroup-devops-tfstate
+          backendAzureRmStorageAccountName: terraform0tfstate0
+          backendAzureRmContainerName: tfstate
+          backendAzureRmKey: prod.tfstate
+          workingDirectory: terraform
