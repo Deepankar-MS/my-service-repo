@@ -6,9 +6,10 @@ trigger:
 resources:
   repositories:
     - repository: templates
-      type: git
-      name: demo-project1/pipeline-templates   # ProjectName/RepoName
-      ref: refs/heads/master                    # Or use refs/tags/v1.0 if tagging
+      type: github
+      name: Deepankar-MS/pipeline-templates
+      ref: refs/heads/main
+      endpoint: github-service-connection                   # Or use refs/tags/v1.0 if tagging
 
 stages:
   # Step 1: Create Terraform Backend
