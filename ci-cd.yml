@@ -1,19 +1,61 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
+name: CI/CD for My Service
 
-trigger:
-- main
+on:
+  push:
+    branches:
+      - main
 
-pool:
-  vmImage: ubuntu-latest
+jobs:
+  # Step 1: Create Terraform Backend
+  create-tf-backend:
+    uses: Deepankar-MS/terraform-pipeline-templates/.github/workflows/template-create-terraform-backend.yml@v1
+    with:
+      environment: tf_backend
+      environmentDisplayName: "Create TF Backend"
+      backendServiceArm: AZURE_5_SUBSCRIPTION
+      backendAzureRmResourceGroupName: resourcegroup-devops-tfstate
+      backendAzureRmStorageAccountName: terraform0tfstate0
+      backendAzureRmContainerName: tfstate
+      location: westeurope
 
-steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
+  # Step 2: Terraform Stages (Dev)
+  terraform-dev:
+    needs: create-tf-backend
+    uses: Deepankar-MS/terraform-pipeline-templates/.github/workflows/template-terraform-stages.yml@v1
+    with:
+      environment: dev
+      environmentDisplayName: "Dev"
+      backendServiceArm: AZURE_5_SUBSCRIPTION
+      backendAzureRmResourceGroupName: resourcegroup-devops-tfstate
+      backendAzureRmStorageAccountName: terraform0tfstate0
+      backendAzureRmContainerName: tfstate
+      backendAzureRmKey: dev.tfstate
+      workingDirectory: terraform
 
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+  # Step 3: Terraform Stages (Test)
+  terraform-test:
+    needs: terraform-dev
+    uses: Deepankar-MS/terraform-pipeline-templates/.github/workflows/template-terraform-stages.yml@v1
+    with:
+      environment: test
+      environmentDisplayName: "Test"
+      backendServiceArm: AZURE_5_SUBSCRIPTION
+      backendAzureRmResourceGroupName: resourcegroup-devops-tfstate
+      backendAzureRmStorageAccountName: terraform0tfstate0
+      backendAzureRmContainerName: tfstate
+      backendAzureRmKey: test.tfstate
+      workingDirectory: terraform
+
+  # Step 4: Terraform Stages (Prod)
+  terraform-prod:
+    needs: [terraform-dev, terraform-test]
+    uses: Deepankar-MS/terraform-pipeline-templates/.github/workflows/template-terraform-stages.yml@v1
+    with:
+      environment: prod
+      environmentDisplayName: "Production"
+      backendServiceArm: AZURE_5_SUBSCRIPTION
+      backendAzureRmResourceGroupName: resourcegroup-devops-tfstate
+      backendAzureRmStorageAccountName: terraform0tfstate0
+      backendAzureRmContainerName: tfstate
+      backendAzureRmKey: prod.tfstate
+      workingDirectory: terraform
